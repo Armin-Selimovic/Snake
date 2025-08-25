@@ -1,3 +1,4 @@
+import os
 import random
 
 BOARD_WIDTH = 8
@@ -9,9 +10,14 @@ APPLE_LIVES = 12
 APPLE_GOT_EATEN = False
 LIVES = 3
 SCORE = 0
-BIGGER_SNAKE = False
+BIGGER_SNAKE = True
 INVALID = False
 
+# ANSI color codes
+GREEN  = "\033[92m"
+LIGHTG = "\033[96m"
+RED    = "\033[91m"
+RESET  = "\033[0m"
 
 def _7_submit_score():
   name = input('Your name for the history: ')
@@ -135,12 +141,13 @@ def _2_is_apple(row, column):
 
 
 def _1_print_game_board():
+  clear_screen()
   global LIVES, APPLE_LIVES, SCORE, BIGGER_SNAKE, APPLE_GOT_EATEN, INVALID
   line = "----------------------------"
   field = [" ", " ", " ", " ", " ", " ", " ", " "]
-  snake = [" ", "+", "∧", "<", "v", ">"]
-  empty_field_symbol = " "
-  apple_field_symbol = "O"
+  snake = [" ", GREEN + "■" + RESET, LIGHTG + "▲" + RESET, LIGHTG + "◄" + RESET, LIGHTG + "▼" + RESET, LIGHTG + "►" + RESET ]
+  empty_field_symbol = "·"
+  apple_field_symbol = RED + "●" + RESET
 
   if SNAKE[len(SNAKE) - 1] == APPLE:
     BIGGER_SNAKE = True
@@ -188,6 +195,13 @@ def moving(button):
   if button == '':
     return ORIENTATION
 
+def clear_screen():
+    # Windows
+    if os.name == "nt":
+        os.system("cls")
+    # Linux / macOS
+    else:
+        os.system("clear")
 
 def main():
   global ORIENTATION, SCORE, APPLE_GOT_EATEN, INVALID
