@@ -1,5 +1,9 @@
 import os
 import random
+import select
+import sys
+import termios
+import tty
 
 BOARD_WIDTH = 8
 BOARD_HEIGHT = 8
@@ -10,7 +14,7 @@ APPLE_LIVES = 12
 APPLE_GOT_EATEN = False
 LIVES = 3
 SCORE = 0
-BIGGER_SNAKE = True
+BIGGER_SNAKE = False
 INVALID = False
 
 # ANSI color codes
@@ -18,6 +22,18 @@ GREEN  = "\033[92m"
 LIGHTG = "\033[96m"
 RED    = "\033[91m"
 RESET  = "\033[0m"
+
+def timed_keypress(timeout = 0.6):
+  fd = sys.stdin.fileno()
+  old_settings = termios.tcgetattr(fd)
+  try:
+    tty.setcbreak(fd)
+    r, _, _ = select.select([sys.stdin], [], [], timeout)
+    if r:
+      return sys.stdin.read(1)
+    return ''
+  finally:
+    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 def _7_submit_score():
   name = input('Your name for the history: ')
@@ -27,9 +43,9 @@ def _7_submit_score():
 
   lines = []
   with open("history.txt", "r") as f:
-     for text in f:
-       line = text.strip()
-       lines.append(str(line))
+      for text in f:
+        line = text.strip()
+        lines.append(str(line))
   if len(lines) > 4:
     del lines[0]
     with open("history.txt", "w") as f:
@@ -81,22 +97,22 @@ def _6_spawn_apple():
 def _5_detect_collision():
   global SNAKE
   if ORIENTATION == 4 and (ord(SNAKE[len(SNAKE) - 1][0]) + 1 == 73):
-   return True
+    return True
   if ORIENTATION == 2 and (ord(SNAKE[len(SNAKE) - 1][0]) - 1 == 64):
-   return True
+    return True
   if ORIENTATION == 3 and (int(SNAKE[len(SNAKE) - 1][1]) - 1 == -1):
-   return True
+    return True
   if ORIENTATION == 5 and (int(SNAKE[len(SNAKE) - 1][1]) + 1 == 8):
     return True
   for counter in range(1, len(SNAKE) - 2):
-   if ORIENTATION == 4 and chr(ord(SNAKE[len(SNAKE) - 1][0]) + 1) + SNAKE[len(SNAKE) - 1][1] == SNAKE[counter]:
-     return True
-   if ORIENTATION == 2 and chr(ord(SNAKE[len(SNAKE) - 1][0]) - 1) + SNAKE[len(SNAKE) - 1][1] == SNAKE[counter]:
-     return True
-   if ORIENTATION == 3 and SNAKE[len(SNAKE) - 1][0] + str(int(SNAKE[len(SNAKE) - 1][1]) - 1) == SNAKE[counter]:
-     return True
-   if ORIENTATION == 5 and SNAKE[len(SNAKE) - 1][0] + str(int(SNAKE[len(SNAKE) - 1][1]) + 1) == SNAKE[counter]:
-     return True
+    if ORIENTATION == 4 and chr(ord(SNAKE[len(SNAKE) - 1][0]) + 1) + SNAKE[len(SNAKE) - 1][1] == SNAKE[counter]:
+      return True
+    if ORIENTATION == 2 and chr(ord(SNAKE[len(SNAKE) - 1][0]) - 1) + SNAKE[len(SNAKE) - 1][1] == SNAKE[counter]:
+      return True
+    if ORIENTATION == 3 and SNAKE[len(SNAKE) - 1][0] + str(int(SNAKE[len(SNAKE) - 1][1]) - 1) == SNAKE[counter]:
+      return True
+    if ORIENTATION == 5 and SNAKE[len(SNAKE) - 1][0] + str(int(SNAKE[len(SNAKE) - 1][1]) + 1) == SNAKE[counter]:
+      return True
 
 
 def _4_move_snake():
@@ -104,6 +120,9 @@ def _4_move_snake():
   SCORE += 1
   if BIGGER_SNAKE is False:
     del SNAKE[0]
+  else:
+    BIGGER_SNAKE = False
+
   if ORIENTATION == 4:
     SNAKE.append((chr(ord(SNAKE[len(SNAKE) - 1][0]) + 1) + (SNAKE[len(SNAKE) - 1][1])))
   if ORIENTATION == 2:
@@ -135,9 +154,9 @@ def _3_is_snake(row, column):
 def _2_is_apple(row, column):
   global APPLE
   if row == ord(APPLE[0]) and column == int(APPLE[1]):
-   return 1
+    return 1
   else:
-   return 0
+    return 0
 
 
 def _1_print_game_board():
@@ -176,11 +195,12 @@ def _1_print_game_board():
     print("|")
   print(line)
   print("    0  1  2  3  4  5  6  7")
+  print("input [w a s d]:")
 
-  if SNAKE[len(SNAKE) - 1] != APPLE:
-    BIGGER_SNAKE = False
-    APPLE_GOT_EATEN = False
-    _6_spawn_apple()
+##  if SNAKE[len(SNAKE) - 1] != APPLE:
+##    BIGGER_SNAKE = False
+##    APPLE_GOT_EATEN = False
+##    _6_spawn_apple()
 
 
 def moving(button):
@@ -207,23 +227,27 @@ def main():
   global ORIENTATION, SCORE, APPLE_GOT_EATEN, INVALID
   controls = ['', 'q', 'w', 'a', 's', 'd']
   if APPLE == "":
-   random_spawn()
+    random_spawn()
   while 1:
     _1_print_game_board()
-    button = input('input [w a s d]:')
+    button = timed_keypress(0.6)
+
     if button not in controls:
       button = ''
+
     orientation2 = ORIENTATION
+
     if button != 'q':
       ORIENTATION = moving(button)
     else:
       exit(0)
+
     if button == '' or (orientation2 + ORIENTATION) % 2 != 0 or orientation2 == ORIENTATION:
       if _5_detect_collision() is not True:
         _4_move_snake()
       else:
-       _7_submit_score()
-       exit(0)
+        _7_submit_score()
+        exit(0)
     else:
       ORIENTATION = orientation2
       print("INVALID")
